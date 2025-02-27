@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menú del Restaurante</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        .seleccionado {
+            background-color: #6EE7B7; /* Verde claro */
+            transition: background-color 0.3s ease;
+        }
+        .no-seleccionado {
+            background-color: #fff;
+            transition: background-color 0.3s ease;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-center">{{ menu.id_restaurante.nombre }}</h1>
+        <p class="text-center text-lg text-gray-700 mb-4">Precio: {{ menu.precio }}€</p>
+
+        <div>
+            <h2 class="text-2xl font-semibold mb-2">Primeros</h2>
+            {% for plato in primeros %}
+            <div class="plato-item p-4 shadow rounded-lg mb-2 flex justify-between items-center no-seleccionado" data-plato-id="{{ plato.id }}" data-tipo="primeros">
+                <div class="flex flex-col">
+                    <span class="text-xl font-medium">{{ plato.nombre }}</span>
+                    <span class="text-sm text-gray-500 mt-1">{{ plato.descripcion }}</span>
+                </div>
+                <button class="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg w-28 sm:w-auto valorar-btn" data-plato-nombre="{{ plato.nombre }}">Valorar</button>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div>
+            <h2 class="text-2xl font-semibold mt-4 mb-2">Segundos</h2>
+            {% for plato in segundos %}
+            <div class="plato-item p-4 shadow rounded-lg mb-2 flex justify-between items-center no-seleccionado" data-plato-id="{{ plato.id }}" data-tipo="segundos">
+                <div class="flex flex-col">
+                    <span class="text-xl font-medium">{{ plato.nombre }}</span>
+                    <span class="text-sm text-gray-500 mt-1">{{ plato.descripcion }}</span>
+                </div>
+                <button class="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg w-28 sm:w-auto valorar-btn" data-plato-nombre="{{ plato.nombre }}">Valorar</button>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <div>
+            <h2 class="text-2xl font-semibold mt-4 mb-2">Postres</h2>
+            {% for plato in postres %}
+            <div class="plato-item p-4 shadow rounded-lg mb-2 flex justify-between items-center no-seleccionado" data-plato-id="{{ plato.id }}" data-tipo="postres">
+                <div class="flex flex-col">
+                    <span class="text-xl font-medium">{{ plato.nombre }}</span>
+                    <span class="text-sm text-gray-500 mt-1">{{ plato.descripcion }}</span>
+                </div>
+                <button class="bg-yellow-400 hover:bg-yellow-500 text-white px-4 py-2 rounded-lg w-28 sm:w-auto valorar-btn" data-plato-nombre="{{ plato.nombre }}">Valorar</button>
+            </div>
+            {% endfor %}
+        </div>
+        
+
+        <div class="mt-6 text-center">
+            <button id="reservarBtn" class="w-full bg-green-500 text-white py-2 rounded-lg hidden">Reservar</button>
+        </div>
+
+        <div class="mt-6">
+            <h2 class="text-2xl font-semibold mb-2">Valora este restaurante</h2>
+            <select id="puntuacion" class="w-full p-2 border border-gray-300 rounded-lg mb-2">
+                <option value="1">⭐</option>
+                <option value="2">⭐⭐</option>
+                <option value="3">⭐⭐⭐</option>
+                <option value="4">⭐⭐⭐⭐</option>
+                <option value="5" selected>⭐⭐⭐⭐⭐</option>
+            </select>
+            <textarea id="comentario" class="w-full p-3 border border-gray-300 rounded-lg mb-2" placeholder="Escribe un comentario..."></textarea>
+            <button id="enviarValoracion" class="w-full bg-blue-500 text-white py-2 rounded-lg">Enviar valoración</button>
+        </div>
+    </div>
+
+    <!-- Modal para valorar platos -->
+    <div id="modalValoracion" class="fixed inset-0 bg-gray-900 bg-opacity-50 hidden flex items-center justify-center">
+        <div class="bg-white p-6 rounded-lg shadow-lg w-96">
+            <h2 id="modalPlatoNombre" class="text-xl font-semibold mb-2"></h2>
+            <select id="puntuacionPlato" class="w-full p-2 border border-gray-300 rounded-lg mb-2">
+                <option value="1">⭐</option>
+                <option value="2">⭐⭐</option>
+                <option value="3">⭐⭐⭐</option>
+                <option value="4">⭐⭐⭐⭐</option>
+                <option value="5" selected>⭐⭐⭐⭐⭐</option>
+            </select>
+            <textarea id="comentarioPlato" class="w-full p-3 border border-gray-300 rounded-lg mb-2" placeholder="Escribe un comentario..."></textarea>
+            <button id="enviarValoracionPlato" class="w-full bg-green-500 text-white py-2 rounded-lg">Enviar valoración</button>
+            <button id="cerrarModal" class="w-full bg-red-500 text-white py-2 mt-2 rounded-lg">Cancelar</button>
+        </div>
+    </div>
+
+    <script>
+        // Aseguramos que el código solo se ejecute después de que el DOM esté completamente cargado
+        document.addEventListener("DOMContentLoaded", function() {
+            document.getElementById("enviarValoracion").addEventListener("click", function () {
+                const restauranteId = "{{ menu.id_restaurante.id }}";
+                const puntuacion = document.getElementById("puntuacion").value;
+                const comentario = document.getElementById("comentario").value;
+
+                fetch("/clientes/enviar_valoracion_restaurante/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify({
+                        restaurante_id: restauranteId,
+                        puntuacion: parseInt(puntuacion),
+                        comentario: comentario,
+                        usuario_id: 1
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message || "Error al enviar la valoración");
+                })
+                .catch(error => console.error("Error:", error));
+            });
+
+            // Manejo del modal de valoración de platos
+            const modal = document.getElementById("modalValoracion");
+            const modalPlatoNombre = document.getElementById("modalPlatoNombre");
+            let currentPlatoId = null;
+
+            document.querySelectorAll(".valorar-btn").forEach(button => {
+                button.addEventListener("click", function () {
+                    currentPlatoId = this.parentNode.getAttribute("data-plato-id");
+                    modalPlatoNombre.textContent = "Valorar " + this.getAttribute("data-plato-nombre");
+                    modal.classList.remove("hidden");
+                });
+            });
+
+            document.getElementById("cerrarModal").addEventListener("click", function () {
+                modal.classList.add("hidden");
+            });
+
+            document.getElementById("enviarValoracionPlato").addEventListener("click", function () {
+                const puntuacion = document.getElementById("puntuacionPlato").value;
+                const comentario = document.getElementById("comentarioPlato").value;
+
+                fetch("/clientes/enviar_valoracion_plato/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify({
+                        plato_id: currentPlatoId,
+                        puntuacion: parseInt(puntuacion),
+                        comentario: comentario,
+                        usuario_id: 1
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message || "Error al enviar la valoración");
+                    modal.classList.add("hidden");
+                })
+                .catch(error => console.error("Error:", error));
+            });
+
+            // Manejo de selección de platos
+            const reservarBtn = document.getElementById("reservarBtn");
+            let seleccionados = { primeros: null, segundos: null, postres: null };
+
+            document.querySelectorAll(".plato-item").forEach(platoItem => {
+                platoItem.addEventListener("click", function () {
+                    const tipo = this.getAttribute("data-tipo");
+
+                    // Deselecciona el plato si ya está seleccionado
+                    if (seleccionados[tipo] && seleccionados[tipo] !== this) {
+                        seleccionados[tipo].classList.remove("seleccionado");
+                        seleccionados[tipo].classList.add("no-seleccionado");
+                    }
+
+                    // Marca el plato como seleccionado
+                    if (!this.classList.contains("seleccionado")) {
+                        this.classList.remove("no-seleccionado");
+                        this.classList.add("seleccionado");
+                        seleccionados[tipo] = this;
+                    } else {
+                        this.classList.remove("seleccionado");
+                        this.classList.add("no-seleccionado");
+                        seleccionados[tipo] = null;
+                    }
+
+                    // Habilitar el botón de reserva si todos los platos están seleccionados
+                    if (seleccionados.primeros && seleccionados.segundos) {
+                        reservarBtn.classList.remove("hidden");
+                    } else {
+                        reservarBtn.classList.add("hidden");
+                    }
+                });
+            });
+
+            // Manejo del botón de reserva
+            reservarBtn.addEventListener("click", function () {
+                const platosSeleccionados = {
+                    primeros: seleccionados.primeros ? seleccionados.primeros.getAttribute("data-plato-id") : null,
+                    segundos: seleccionados.segundos ? seleccionados.segundos.getAttribute("data-plato-id") : null,
+                    postres: seleccionados.postres ? seleccionados.postres.getAttribute("data-plato-id") : null
+                };
+                const restauranteId = "{{ menu.id_restaurante.id }}";
+                fetch("/clientes/reservar/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify({
+                        platos: platosSeleccionados,
+                        restaurante_id: restauranteId,
+                        usuario_id: 1
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message || "Error al hacer la reserva");
+                })
+                .catch(error => console.error("Error:", error));
+            });
+        });
+    </script>
+</body>
+</html>

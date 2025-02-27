@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Menús del Día</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 p-6">
+    <div class="max-w-4xl mx-auto">
+        <h1 class="text-3xl font-bold mb-6 text-center">Menús del Día</h1>
+        
+        <form class="flex items-center space-x-2" method="POST" action="{% url 'search_restaurants' %}">
+            {% csrf_token %}
+            <input type="text" id="search" name="query" placeholder="Buscar restaurante..." 
+                   class="w-full p-3 border border-gray-300 rounded-lg mb-4">
+            <button id="searchButton" class="p-3 bg-blue-500 text-white rounded-lg">Buscar</button>
+        </form>
+
+        <!-- Si existe error, solo mostrar mensaje de error -->
+        {% if error %}
+            <div class="p-4 rounded-lg mb-6">
+                <p>{{ error }}</p>
+            </div>
+        {% else %}
+
+            <!-- Mostrar los menús si no hay error -->
+            <div id="menu-container" class="grid grid-cols-1 md:grid-cols-1 gap-4">
+                {% for menu in menus %}
+                <div class="bg-white p-4 shadow rounded-lg cursor-pointer" 
+                     onclick="window.location.href='/clientes/restaurant/{{ menu.id }}'">
+                    <h2 class="text-xl font-semibold">{{ menu.id_restaurante.nombre }}</h2>
+                    <p class="text-gray-600">Precio: {{ menu.precio }}€</p>
+                    <p class="text-gray-500">Ubicación: {{ menu.id_restaurante.ubicacion }}</p>
+                    <p class="text-yellow-500">{{ menu.id_restaurante.media_valoraciones|floatformat:1 }} ⭐ </p>
+                </div>
+                {% empty %}
+                    <p class="text-gray-500 col-span-full">No se encontraron menús.</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+    </div>
+</body>
+</html>
