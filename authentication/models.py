@@ -7,7 +7,7 @@ class Usuario(models.Model):
     rol = models.CharField(max_length=50)  # Cliente o Propietario
 
     def __str__(self):
-        return self.usernameç
+        return self.username
     
 # Modelo para RESTAURANTES
 class Restaurante(models.Model):

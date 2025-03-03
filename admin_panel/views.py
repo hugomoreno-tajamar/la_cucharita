@@ -116,7 +116,9 @@ def upload_pdf(request):
         # Procesar con Groq
         structured_data = process_text_with_groq(text)
 
-        restaurante= Restaurante.objects.get(id=4)
+        id_usuario = int(request.session.get("user_id"))
+
+        restaurante= Restaurante.objects.get(id_usuario_id=id_usuario)
 
         # Guardar en la base de datos
         for menu_data in structured_data["menus"]:

@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Registro</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="bg-gray-100 flex items-center justify-center h-screen">
+    <div class="bg-white p-8 rounded-2xl shadow-lg w-96">
+        <h2 class="text-2xl font-semibold text-center mb-6">Registro</h2>
+        
+        {% if messages %}
+            <div class="mb-4">
+                {% for message in messages %}
+                    <p class="text-red-500 text-sm">{{ message }}</p>
+                {% endfor %}
+            </div>
+        {% endif %}
+        
+        <div class="flex justify-center mb-4">
+            <button id="userBtn" class="bg-blue-500 text-white px-4 py-2 rounded-l-lg">Usuario</button>
+            <button id="restaurantBtn" class="bg-gray-300 px-4 py-2 rounded-r-lg">Restaurante</button>
+        </div>
+        
+        <form id="userForm" action="{% url 'register' %}" method="POST" class="space-y-4">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Usuario</label>
+                <input type="text" name="username" required 
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Contraseña</label>
+                <input type="password" name="password" required 
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">Registrar</button>
+        </form>
+        
+        <form id="restaurantForm" action="{% url 'register_restaurant' %}" method="POST" class="space-y-4 hidden">
+            {% csrf_token %}
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Nombre del Restaurante</label>
+                <input type="text" name="nombre" required 
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Ubicación</label>
+                <input type="text" name="ubicacion" required 
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Tipo</label>
+                <input type="text" name="tipo" required 
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Teléfono</label>
+                <input type="text" name="telefono" required 
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Correo Electrónico</label>
+                <input type="email" name="email" required 
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Clave Secreta</label>
+                <input type="password" name="clave" required 
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <div>
+                <label class="block text-sm font-medium text-gray-700">Contraseña</label>
+                <input type="password" name="password" required 
+                    class="mt-1 block w-full px-4 py-2 border border-gray-300 rounded-lg shadow-sm focus:ring-blue-500 focus:border-blue-500">
+            </div>
+            <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-2 rounded-lg transition">Registrar Restaurante</button>
+        </form>
+        
+        <p class="text-center text-sm text-gray-600 mt-4">
+            ¿Ya tienes una cuenta? <a href="{% url 'login' %}" class="text-blue-500 hover:underline">Inicia sesión</a>
+        </p>
+    </div>
+    
+    <script>
+        document.getElementById("userBtn").addEventListener("click", function() {
+            document.getElementById("userForm").classList.remove("hidden");
+            document.getElementById("restaurantForm").classList.add("hidden");
+            this.classList.add("bg-blue-500", "text-white");
+            document.getElementById("restaurantBtn").classList.remove("bg-blue-500", "text-white");
+            document.getElementById("restaurantBtn").classList.add("bg-gray-300");
+        });
+
+        document.getElementById("restaurantBtn").addEventListener("click", function() {
+            document.getElementById("restaurantForm").classList.remove("hidden");
+            document.getElementById("userForm").classList.add("hidden");
+            this.classList.add("bg-blue-500", "text-white");
+            document.getElementById("userBtn").classList.remove("bg-blue-500", "text-white");
+            document.getElementById("userBtn").classList.add("bg-gray-300");
+        });
+    </script>
+</body>
+</html>

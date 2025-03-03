@@ -154,8 +154,7 @@
                     body: JSON.stringify({
                         plato_id: currentPlatoId,
                         puntuacion: parseInt(puntuacion),
-                        comentario: comentario,
-                        usuario_id: 1
+                        comentario: comentario
                     })
                 })
                 .then(response => response.json())
@@ -216,8 +215,7 @@
                     },
                     body: JSON.stringify({
                         platos: platosSeleccionados,
-                        restaurante_id: restauranteId,
-                        usuario_id: 1
+                        restaurante_id: restauranteId
                     })
                 })
                 .then(response => response.json())

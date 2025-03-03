@@ -39,21 +39,18 @@ def restaurant_view(request, menu_id):
 def enviar_valoracion_restaurante(request):
     if request.method == "POST":
         data = json.loads(request.body)
-        
+
         restaurante_id = data.get("restaurante_id")
-        usuario_id = data.get("usuario_id")  # Suponiendo que el usuario está autenticado
+        id_usuario = int(request.session.get("user_id"))
         puntuacion = data.get("puntuacion")
         comentario = data.get("comentario")
-
-        restaurante = Restaurante.objects.get(id=restaurante_id)
-        usuario = Usuario.objects.get(id=usuario_id)
         
         if not (1 <= puntuacion <= 5):
             return JsonResponse({"error": "Puntuación fuera de rango"}, status=400)
         
         valoracion = ValoracionRestaurante.objects.create(
             id_restaurante_id=restaurante_id,
-            id_usuario_id=usuario_id,
+            id_usuario_id=id_usuario,
             puntuacion=puntuacion,
             comentario=comentario,
             fecha=date.today()
@@ -68,7 +65,7 @@ def enviar_valoracion_plato(request):
     if request.method == "POST":
         data = json.loads(request.body)
         plato_id = data.get("plato_id")
-        usuario_id = data.get("usuario_id")  # Suponiendo que el usuario está autenticado
+        usuario_id = int(request.session.get("user_id"))  # Suponiendo que el usuario está autenticado
         puntuacion = data.get("puntuacion")
         comentario = data.get("comentario")
         
@@ -93,7 +90,7 @@ def reservar(request):
     if request.method == "POST":
         data = json.loads(request.body)
         platos = data.get("platos")
-        usuario_id = data.get("usuario_id")  # Suponiendo que el usuario está autenticado
+        usuario_id = int(request.session.get("user_id"))  # Suponiendo que el usuario está autenticado
         restaurante_id = data.get("restaurante_id") 
         
         reserva = Reserva.objects.create(
