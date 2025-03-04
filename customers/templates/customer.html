@@ -14,8 +14,13 @@
             {% csrf_token %}
             <input type="text" id="search" name="query" placeholder="Buscar restaurante..." 
                    class="w-full p-3 border border-gray-300 rounded-lg mb-4">
+            <label class="flex items-center space-x-2">
+                <input type="checkbox" id="promoOnly" name="promo_only" class="form-checkbox text-blue-500">
+                <span class="text-gray-700">Buscar solo promociones</span>
+            </label>
             <button id="searchButton" class="p-3 bg-blue-500 text-white rounded-lg">Buscar</button>
         </form>
+        
 
         <!-- Si existe error, solo mostrar mensaje de error -->
         {% if error %}

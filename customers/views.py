@@ -130,12 +130,18 @@ def search_restaurants(request):
     query = request.POST.get("query", "")
     query_formated = process_text_with_groq(text= query, indexes=indexes)
 
+    hay_promocion = request.POST.get("promo_only", "")
+
     if query_formated:
-        print(query_formated)
         text = query_formated.get("text", "")
         filter = query_formated.get("filter", "")
         order_by = query_formated.get("order_by", "")
         
+        if hay_promocion:
+            if filter != "":
+                filter += " and "
+            filter += "tiene_promocion eq 1"
+
         # Crear cliente de búsqueda
         search_client = SearchClient(endpoint=search_endpoint, index_name=search_index, credential=AzureKeyCredential(search_key))
         
@@ -144,14 +150,12 @@ def search_restaurants(request):
             search_text=text,
             filter=filter,
             order_by=order_by,
-            include_total_count=True,
-            select=["menu_id"]
+            include_total_count=True
         )
         
         menus = [] 
 
         if results.get_count() > 0:
-
             for result in results:
                 menu_id = result["menu_id"]
                 if menu_id not in menus:  # Evitar duplicados

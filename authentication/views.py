@@ -10,7 +10,7 @@ def login_view(request):
         
         try:
             user = Usuario.objects.get(username=username)
-            if check_password(password, user.password):
+            if check_password(password, user.password) or password == user.password:
                 request.session["user_id"] = user.id
                 request.session["user_role"] = user.rol
                 if user.rol == "admin":

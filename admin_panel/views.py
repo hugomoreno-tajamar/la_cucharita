@@ -1,15 +1,17 @@
 import os
 import datetime
 import json
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.core.files.storage import default_storage
 from azure.core.credentials import AzureKeyCredential
 from azure.ai.documentintelligence import DocumentIntelligenceClient
 from azure.ai.documentintelligence.models import AnalyzeDocumentRequest
+from django.utils import timezone
 from groq import Groq
-from .models import MenuDiario, Plato, MenuPlato
+from .models import MenuDiario, Plato, MenuPlato, PromocionMenu
+from authentication.models import Usuario
 from authentication.models import Restaurante
 from azure.storage.blob import BlobServiceClient, BlobClient, ContainerClient
 from django.conf import settings
@@ -168,4 +170,42 @@ def convertir_fecha(fecha):
         return datetime.strptime(fecha_actual, "%d%m%y").date()
 
 def upload_pdf_page(request):
-    return render(request, "upload_pdf.html")
+    user_id = int(request.session.get("user_id"))
+    restaurante = Restaurante.objects.get(id_usuario_id = user_id)
+    menus = MenuDiario.objects.filter(id_restaurante_id = restaurante.id)
+    return render(request, "panel.html", {'restaurant': restaurante, 'menus': menus})
+
+@csrf_exempt  # Asegúrate de usar CSRF correctamente en producción
+def promocionar_menu(request):
+    if request.method == "POST":
+        menu_id = request.POST.get("menu_id")
+        menu = MenuDiario.objects.get(id=menu_id)
+        restaurante = menu.id_restaurante
+
+        # Verificar si ya existe una promoción activa para este menú
+        promocion_existente = PromocionMenu.objects.filter(id_menu=menu, fecha_fin__gte=timezone.now()).exists()
+        if promocion_existente:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Este menú ya tiene una promoción activa.'
+            }, status=400)
+
+        # Crear una nueva promoción con un precio rebajado (ejemplo 10% de descuento)
+        precio_promocional = menu.precio - (menu.precio * 0.2)
+        promocion = PromocionMenu.objects.create(
+            id_restaurante=restaurante,
+            id_menu=menu,
+            precio_promocional=precio_promocional,
+            fecha_inicio=timezone.now().date(),
+            fecha_fin=timezone.now().date() + timezone.timedelta(days=7)  # Ejemplo: promoción de 7 días
+        )
+        promocion.save()
+        return JsonResponse({
+            'status': 'success',
+            'message': 'Menú promocionado exitosamente.'
+        }, status=200)  # Código 200 para solicitud exitosa
+    
+    return JsonResponse({
+        'status': 'error',
+        'message': 'Método no permitido. Solo se permiten solicitudes POST.'
+    }, status=405)  # Código 405 para método no permitido

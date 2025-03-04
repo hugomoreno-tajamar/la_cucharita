@@ -21,6 +21,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('panel/', include('admin_panel.urls')),  # Vista de administración
     path('clientes/', include('customers.urls')),  # Vista de clientes
-    # path('/', include('authentication.urls')),  # Login y autenticación
+    path('', include('authentication.urls')),  # Login y autenticación
 ]
 

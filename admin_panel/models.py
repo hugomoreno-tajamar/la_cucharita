@@ -26,11 +26,9 @@ class MenuPlato(models.Model):
     id_menu = models.ForeignKey(MenuDiario, on_delete=models.CASCADE)
     id_plato = models.ForeignKey('Plato', on_delete=models.CASCADE)
 
-
-# Modelo para PROMOCIONES_PLATOS
-class PromocionPlato(models.Model):
+class PromocionMenu(models.Model):
     id_restaurante = models.ForeignKey(Restaurante, on_delete=models.CASCADE)
-    id_plato = models.ForeignKey(Plato, on_delete=models.CASCADE)
+    id_menu = models.ForeignKey(MenuDiario, on_delete=models.CASCADE)
     precio_promocional = models.DecimalField(max_digits=10, decimal_places=2)
     fecha_inicio = models.DateField()
     fecha_fin = models.DateField()

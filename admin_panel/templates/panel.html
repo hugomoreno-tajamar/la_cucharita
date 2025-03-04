@@ -1,0 +1,115 @@
+{% now "Y-m-d" as today %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Upload PDF</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body class="flex flex-col items-center h-screen bg-gray-100 p-6">
+    
+    <!-- Encabezado con el título llamativo -->
+    <header class="w-full bg-blue-600 text-white py-4 text-center rounded-lg shadow-md mb-6">
+        <h1 class="text-3xl font-bold">Panel de Administración de {{ restaurant.nombre }}</h1>
+    </header>
+    
+    <!-- Caja de subida de archivos -->
+    <div class="bg-white p-6 rounded-lg shadow-lg w-96 mb-6">
+        <h2 class="text-xl font-bold mb-4 text-center">🍲 Sube aquí tu menú 🍲</h2>
+        <input type="file" id="fileInput" accept="application/pdf" class="block w-full mb-4 border p-2 rounded" />
+        <button id="uploadBtn" class="w-full bg-blue-500 text-white py-2 rounded hover:bg-blue-600">Subir</button>
+        <p id="message" class="text-center text-sm text-gray-700 mt-4"></p>
+    </div>
+    
+    <!-- Mostrar los menús si existen -->
+    {% if menus %}
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[75%] overflow-y-auto">
+        <h2 class="text-xl font-bold mb-4 text-center">Tus menús</h2>
+        <ul class="space-y-2">
+            {% for menu in menus %}
+            <li class="border p-3 rounded-lg shadow-sm">
+                <div>
+                    <p class="text-lg font-semibold">Menú del {{ menu.fecha_inicio|date:'d/m/Y' }} al {{ menu.fecha_final|date:'d/m/Y' }}</p>
+                    <p class="text-gray-700">Precio: {{ menu.precio }} €</p>
+                    {% if menu.fecha_inicio|date:"Y-m-d" <= today and menu.fecha_final|date:"Y-m-d" >= today %}
+                        <p class="text-green-600 font-bold">Activo</p>
+                    {% else %}
+                        <p class="text-red-600 font-bold">Inactivo, expiró el {{menu.fecha_final|date:"d-m-Y"}}</p>
+                    {% endif %}
+                </div>
+            </li>
+                {% if menu.fecha_inicio|date:"Y-m-d" <= today and menu.fecha_final|date:"Y-m-d" >= today %}
+                <button id="promocionar-btn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                    Promocionar
+                </button>
+                    {% endif %}
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+    
+</body>
+<script>
+    document.getElementById("uploadBtn").addEventListener("click", async () => {
+        const fileInput = document.getElementById("fileInput");
+        const message = document.getElementById("message");
+
+        if (!fileInput.files.length) {
+            message.textContent = "Please select a file";
+            return;
+        }
+
+        const formData = new FormData();
+        formData.append("file", fileInput.files[0]);
+
+        try {
+            const response = await fetch("/panel/upload/", {
+                method: "POST",
+                body: formData
+            });
+
+            if (response.ok) {
+                message.textContent = "File uploaded and processed successfully!";
+            } else {
+                message.textContent = "Error uploading file";
+            }
+        } catch (error) {
+            message.textContent = "Error uploading file";
+        }
+    });
+    
+    document.getElementById("promocionar-btn").addEventListener("click", function() {
+
+        const menuId = "{{ menu.id }}";  // Asumimos que `menu.id` está disponible en el contexto de la plantilla
+
+        // Crea el objeto de datos que se enviará
+        const formData = new FormData();
+        formData.append("menu_id", menuId);
+
+        console.log(menuId)
+
+        // Utiliza fetch para hacer la solicitud POST
+        fetch("/panel/promocionar/", {
+            method: "POST",
+            body: formData,
+            headers: {
+                "X-CSRFToken":"{{ csrf_token }}" // Agrega el token CSRF a las cabeceras
+            }
+        })
+        .then(response => response.json())
+        .then(data => {
+            // Muestra el mensaje en función de la respuesta
+            if (data.status === 'success') {
+                alert(data.message);  // Si la respuesta es exitosa
+            } else {
+                alert(data.message);  // Si hay un error
+            }
+        })
+        .catch(error => {
+            console.error("Error al promocionar el menú:", error);
+            alert("Ocurrió un error al promocionar el menú.");
+        });
+    });
+</script>
+</html>
