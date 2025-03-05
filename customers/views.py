@@ -17,15 +17,41 @@ from dotenv import load_dotenv
 import re
 from groq import Groq
 from datetime import datetime
+from admin_panel.indexer import reset_indexer
+
 
 load_dotenv()
+search_endpoint = os.getenv('SEARCH_SERVICE_ENDPOINT')
+search_key = os.getenv('SEARCH_SERVICE_QUERY_KEY')
+search_index = os.getenv('SEARCH_INDEX_NAME')
+
+client = SearchIndexClient(endpoint=search_endpoint, credential=AzureKeyCredential(search_key))
+
+search_client = SearchClient(endpoint=search_endpoint, index_name=search_index, credential=AzureKeyCredential(search_key))
+
+
 
 def customer_view(request):
-    hoy = date.today()
-    menus_hoy = MenuDiario.objects.filter(fecha_inicio__lte=hoy, fecha_final__gte=hoy)
-    for menu in menus_hoy:
-        menu.id_restaurante.media_valoraciones = ValoracionRestaurante.objects.filter(id_restaurante=menu.id_restaurante).aggregate(Avg('puntuacion'))['puntuacion__avg'] or 0
-    return render(request, 'customer.html', {'menus': menus_hoy})
+    results = search_client.search(
+        search_text="*",
+        order_by="menu_precio asc",
+        filter="is_deleted eq 0",
+        include_total_count=True
+    )
+    
+    menus = [] 
+    menu_ids_vistos = set()
+
+    if results.get_count() > 0:
+        for result in results:
+            menu_id = result["menu_id"]
+            if menu_id not in menu_ids_vistos:
+                menus.append(result)  # Agrega el primer objeto encontrado con ese menu_id
+                menu_ids_vistos.add(menu_id)  # Registra el menu_id como visto
+    else:
+        return render(request, 'customer.html', {'error': '😢 Lo sentimos, no hemos encontrado nada con tu búsqueda.'})
+
+    return render(request, 'customer.html', {'menus': menus})
 
 def restaurant_view(request, menu_id):
     menu = MenuDiario.objects.get(id=menu_id)
@@ -55,6 +81,8 @@ def enviar_valoracion_restaurante(request):
             comentario=comentario,
             fecha=date.today()
         )
+
+        reset_indexer()
         
         return JsonResponse({"message": "Valoración enviada correctamente"}, status=201)
     
@@ -79,6 +107,8 @@ def enviar_valoracion_plato(request):
             comentario=comentario,
             fecha=date.today()
         )
+
+        reset_indexer()
         
         return JsonResponse({"message": "Valoración enviada correctamente"}, status=201)
     
@@ -106,18 +136,12 @@ def reservar(request):
                     id_reserva = reserva
                 )
         
-        return JsonResponse({"message": "Valoración enviada correctamente"}, status=201)
+        return JsonResponse({"message": "Reserva realizada correctamente"}, status=201)
     
     return JsonResponse({"error": "Método no permitido"}, status=405)
 
 @csrf_exempt
 def search_restaurants(request):
-    search_endpoint = os.getenv('SEARCH_SERVICE_ENDPOINT')
-    search_key = os.getenv('SEARCH_SERVICE_QUERY_KEY')
-    search_index = os.getenv('SEARCH_INDEX_NAME')
-
-    client = SearchIndexClient(endpoint=search_endpoint, credential=AzureKeyCredential(search_key))
-
     # Obtener el índice
     index = client.get_index(search_index)
 
@@ -130,21 +154,24 @@ def search_restaurants(request):
     query = request.POST.get("query", "")
     query_formated = process_text_with_groq(text= query, indexes=indexes)
 
+    print(query_formated)
+
     hay_promocion = request.POST.get("promo_only", "")
 
     if query_formated:
         text = query_formated.get("text", "")
         filter = query_formated.get("filter", "")
         order_by = query_formated.get("order_by", "")
+
+        if filter != "":
+            filter += " and "
+
+        filter += "is_deleted eq 0"
+        
         
         if hay_promocion:
-            if filter != "":
-                filter += " and "
-            filter += "tiene_promocion eq 1"
+            filter += " and tiene_promocion eq 1"
 
-        # Crear cliente de búsqueda
-        search_client = SearchClient(endpoint=search_endpoint, index_name=search_index, credential=AzureKeyCredential(search_key))
-        
         # Realizar la búsqueda
         results = search_client.search(
             search_text=text,
@@ -154,33 +181,23 @@ def search_restaurants(request):
         )
         
         menus = [] 
+        menu_ids_vistos = set()
 
         if results.get_count() > 0:
             for result in results:
                 menu_id = result["menu_id"]
-                if menu_id not in menus:  # Evitar duplicados
-                    menus.append(menu_id)
-            
-            # Lista para almacenar el menú de cada restaurante
-            menus_filtrados = []
-            
-            # Obtener el menú de hoy para cada restaurante
-            for id_menu in menus:
-                try:
-                    # Obtener el único menú para este restaurante y esta fecha
-                    menu = MenuDiario.objects.get(id=id_menu)
-                    menu.id_restaurante.media_valoraciones = ValoracionRestaurante.objects.filter(id_restaurante=menu.id_restaurante).aggregate(Avg('puntuacion'))['puntuacion__avg'] or 0
-                    menus_filtrados.append(menu)
-                except MenuDiario.DoesNotExist:
-                    continue
-            
-            # Renderizar el template con los menús encontrados
-            return render(request, 'customer.html', {'menus': menus_filtrados})
+                if menu_id not in menu_ids_vistos:
+                    menus.append(result)  # Agrega el primer objeto encontrado con ese menu_id
+                    menu_ids_vistos.add(menu_id)  # Registra el menu_id como visto
+
+            return render(request, 'customer.html', {'menus': menus})
         else:
             return render(request, 'customer.html', {'error': '😢 Lo sentimos, no hemos encontrado nada con tu búsqueda.'})
 
     else:
         return render(request, 'customer.html', {'error': 'Por favor, ingrese un término de búsqueda.'})
+    
+
 def process_text_with_groq(text, indexes):
     GROQ_API_KEY = os.getenv("GROQ_API_KEY")
 

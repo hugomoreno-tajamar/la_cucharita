@@ -7,7 +7,7 @@
     <title>Upload PDF</title>
     <script src="https://cdn.tailwindcss.com"></script>
 </head>
-<body class="flex flex-col items-center h-screen bg-gray-100 p-6">
+<body class="flex flex-col items-center  bg-gray-100 p-6">
     
     <!-- Encabezado con el título llamativo -->
     <header class="w-full bg-blue-600 text-white py-4 text-center rounded-lg shadow-md mb-6">
@@ -24,7 +24,7 @@
     
     <!-- Mostrar los menús si existen -->
     {% if menus %}
-    <div class="bg-white p-6 rounded-lg shadow-lg w-[75%] overflow-y-auto">
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[75%] h-[60%] overflow-y-auto">
         <h2 class="text-xl font-bold mb-4 text-center">Tus menús</h2>
         <ul class="space-y-2">
             {% for menu in menus %}
@@ -40,15 +40,35 @@
                 </div>
             </li>
                 {% if menu.fecha_inicio|date:"Y-m-d" <= today and menu.fecha_final|date:"Y-m-d" >= today %}
-                <button id="promocionar-btn" class="bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
-                    Promocionar
-                </button>
-                    {% endif %}
+                    <button data-menu-id="{{menu.id}}" class="promocionar-btn bg-green-500 text-white px-4 py-2 rounded hover:bg-green-600">
+                        Promocionar
+                    </button>
+                {% endif %}
             {% endfor %}
         </ul>
     </div>
     {% endif %}
-    
+
+    <!-- Menús Promocionados -->
+    {% if menusPromocionales %}
+    <div class="bg-white p-6 rounded-lg shadow-lg w-[75%] mt-6">
+        <h2 class="text-xl font-bold mb-4 text-center">Menús Promocionados</h2>
+        <ul class="space-y-2">
+            {% for menu in menusPromocionales %}
+            <li class="border p-3 rounded-lg shadow-sm relative">
+                <span class="absolute top-2 right-2 bg-red-500 text-white px-2 py-1 text-sm rounded">20%</span>
+                <div>
+                    <p class="text-lg font-semibold">Menú del {{ menu.id_menu.fecha_inicio|date:'d/m/Y' }} al {{ menu.id_menu.fecha_final|date:'d/m/Y' }}</p>
+                    <p class="text-gray-700 line-through">{{ menu.id_menu.precio }} €</p>
+                    <p class="text-xl font-semibold text-green-600">{{ menu.precio_promocional }} €</p>
+                    <p class="text-sm text-gray-500">Finaliza en {{ menu.fecha_fin|date:"d/m/Y" }}</p>
+                </div>
+            </li>
+            {% endfor %}
+        </ul>
+    </div>
+    {% endif %}
+
 </body>
 <script>
     document.getElementById("uploadBtn").addEventListener("click", async () => {
@@ -71,6 +91,10 @@
 
             if (response.ok) {
                 message.textContent = "File uploaded and processed successfully!";
+                // Recargar la página después de que el archivo haya sido subido con éxito
+                setTimeout(() => {
+                    location.reload(); // Recarga la página después de un tiempo
+                }, 1500);  // Puedes ajustar el tiempo si lo deseas
             } else {
                 message.textContent = "Error uploading file";
             }
@@ -78,37 +102,43 @@
             message.textContent = "Error uploading file";
         }
     });
-    
-    document.getElementById("promocionar-btn").addEventListener("click", function() {
 
-        const menuId = "{{ menu.id }}";  // Asumimos que `menu.id` está disponible en el contexto de la plantilla
+    // Para todos los botones "Promocionar"
+    document.querySelectorAll(".promocionar-btn").forEach(button => {
+        button.addEventListener("click", function() {
+            const menuId = this.getAttribute("data-menu-id");
 
-        // Crea el objeto de datos que se enviará
-        const formData = new FormData();
-        formData.append("menu_id", menuId);
+            // Crea el objeto de datos que se enviará
+            const formData = new FormData();
+            formData.append("menu_id", menuId);
 
-        console.log(menuId)
+            console.log(menuId);
 
-        // Utiliza fetch para hacer la solicitud POST
-        fetch("/panel/promocionar/", {
-            method: "POST",
-            body: formData,
-            headers: {
-                "X-CSRFToken":"{{ csrf_token }}" // Agrega el token CSRF a las cabeceras
-            }
-        })
-        .then(response => response.json())
-        .then(data => {
-            // Muestra el mensaje en función de la respuesta
-            if (data.status === 'success') {
-                alert(data.message);  // Si la respuesta es exitosa
-            } else {
-                alert(data.message);  // Si hay un error
-            }
-        })
-        .catch(error => {
-            console.error("Error al promocionar el menú:", error);
-            alert("Ocurrió un error al promocionar el menú.");
+            // Utiliza fetch para hacer la solicitud POST
+            fetch("/panel/promocionar/", {
+                method: "POST",
+                body: formData,
+                headers: {
+                    "X-CSRFToken": "{{ csrf_token }}" // Agrega el token CSRF a las cabeceras
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                // Muestra el mensaje en función de la respuesta
+                if (data.status === 'success') {
+                    alert(data.message);  // Si la respuesta es exitosa
+                    // Recargar la página después de que el menú haya sido promocionado
+                    setTimeout(() => {
+                        location.reload(); // Recarga la página después de un tiempo
+                    }, 1500);  // Puedes ajustar el tiempo si lo deseas
+                } else {
+                    alert(data.message);  // Si hay un error
+                }
+            })
+            .catch(error => {
+                console.error("Error al promocionar el menú:", error);
+                alert("Ocurrió un error al promocionar el menú.");
+            });
         });
     });
 </script>

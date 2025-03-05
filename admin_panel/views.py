@@ -19,6 +19,7 @@ from dotenv import load_dotenv
 import re
 from decimal import Decimal
 from datetime import datetime
+from .indexer import reset_indexer
 
 
 load_dotenv()
@@ -143,8 +144,15 @@ def upload_pdf(request):
                     id_plato = plato,
                     id_menu = menu
                 )
-
-        return JsonResponse({"message": "File processed successfully"})
+        
+        if reset_indexer():
+            return JsonResponse({"message": "File processed successfully"})
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Error al reiniciar el indexer'
+            }, status=404)
+        
     
     return JsonResponse({"error": "Invalid request"}, status=400)
 
@@ -173,7 +181,14 @@ def upload_pdf_page(request):
     user_id = int(request.session.get("user_id"))
     restaurante = Restaurante.objects.get(id_usuario_id = user_id)
     menus = MenuDiario.objects.filter(id_restaurante_id = restaurante.id)
-    return render(request, "panel.html", {'restaurant': restaurante, 'menus': menus})
+    menusPromocionales = PromocionMenu.objects.filter(id_menu_id__in=menus.values_list('id', flat=True))
+    
+    if menusPromocionales.exists():
+        return render(request, "panel.html", {'restaurant': restaurante, 'menus': menus, 'menusPromocionales': menusPromocionales})
+    else:
+        return render(request, "panel.html", {'restaurant': restaurante, 'menus': menus})
+
+
 
 @csrf_exempt  # Asegúrate de usar CSRF correctamente en producción
 def promocionar_menu(request):
@@ -191,7 +206,7 @@ def promocionar_menu(request):
             }, status=400)
 
         # Crear una nueva promoción con un precio rebajado (ejemplo 10% de descuento)
-        precio_promocional = menu.precio - (menu.precio * 0.2)
+        precio_promocional = menu.precio - (menu.precio * Decimal(0.2))
         promocion = PromocionMenu.objects.create(
             id_restaurante=restaurante,
             id_menu=menu,
@@ -200,10 +215,17 @@ def promocionar_menu(request):
             fecha_fin=timezone.now().date() + timezone.timedelta(days=7)  # Ejemplo: promoción de 7 días
         )
         promocion.save()
-        return JsonResponse({
-            'status': 'success',
-            'message': 'Menú promocionado exitosamente.'
-        }, status=200)  # Código 200 para solicitud exitosa
+
+        if reset_indexer():
+            return JsonResponse({
+                'status': 'success',
+                'message': 'Menú promocionado exitosamente.'
+            }, status=200)
+        else:
+            return JsonResponse({
+                'status': 'error',
+                'message': 'Error al reiniciar el indexer'
+            }, status=404)
     
     return JsonResponse({
         'status': 'error',

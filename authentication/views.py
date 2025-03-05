@@ -48,6 +48,7 @@ def register_restaurant(request):
         email = request.POST["email"]
         clave = request.POST["clave"]
         password = request.POST["password"]
+        ciudad = request.POST["ciudad"]
         
         CLAVE_REQUERIDA = "SECRETA123"  # Definir una clave de seguridad para registrar restaurantes
         if clave != CLAVE_REQUERIDA:
@@ -64,6 +65,7 @@ def register_restaurant(request):
             tipo=tipo,
             telefono=telefono,
             email=email,
+            ciudad=ciudad,
             id_usuario=user
         )
         messages.success(request, "Restaurante registrado exitosamente. Credenciales enviadas por correo.")
